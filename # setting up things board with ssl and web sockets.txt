@@ -1,0 +1,44 @@
+# setting up things board with ssl and web sockets (so you can see the data arriving in realtime)
+#1. Install nginx (ref https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-16-04)
+#	sudo apt-get update
+#	sudo apt-get install nginx
+#	sudo systemctl stop nginx
+#2. Install certbot (to generate a certificate with letsencrypt) (ref - https://www.digitalocean.com/community/tutorials/how-to-secure-nginx-with-let-s-encrypt-on-ubuntu-16-04)
+#		sudo add-apt-repository ppa:certbot/certbot
+#		sudo apt-get update
+#                sudo apt-get install python-certbot-nginx
+#  3. Obtain an ssl certificate.
+#	sudo certbot --nginx -d example.com 
+#  4. Updating Diffie-Hellman Parameters (see https://www.digitalocean.com/community/tutorials/how-to-secure-nginx-with-let-s-encrypt-on-ubuntu-16-04 for more details)
+#	sudo openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048
+#  5. Open config file:
+#	sudo nano /etc/nginx/sites-available/default
+#       add additional configurations as per file in this repository
+#  6. Check the syntax
+#	sudo nginx -t
+#  7.  sudo systemctl reload nginx
+#  8. Setting up auto renewal
+#	sudo crontab -e
+#  Then add this line: 
+# 15 3 * * * /usr/bin/certbot renew --quiet
+
+
+nginx config file:
+
+server {
+        listen 80 default_server;
+        listen [::]:80 default_server;
+        ssl_dhparam /etc/ssl/certs/dhparam.pem; # line required for Diffie-Hellman Parameters
+
+	server_name example.com;
+
+        location /  {
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header Host $host;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "upgrade";
+
+        }
